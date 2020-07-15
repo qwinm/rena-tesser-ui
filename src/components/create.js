@@ -1,6 +1,6 @@
 import React from 'react';
 import axios from 'axios';
-import configs from '../config.js';
+import API_URI from '../config';
 class Create extends React.Component {
     constructor(props) {
         super(props)
@@ -19,7 +19,7 @@ class Create extends React.Component {
         const token = localStorage.getItem("x-auth-token")
         /////////////////
 
-        axios.post(`${configs.API_URL}/create`, { user }, { headers: { 'x-auth-token': token } })
+        axios.post(`${API_URI}/create`, { user }, { headers: { 'x-auth-token': token } })
             .then(response => {
                 console.log(response.data);
                 this.setState({ succ: response.data, err: null })

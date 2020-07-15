@@ -28,6 +28,7 @@ class Upload extends React.Component {
     }
 
     getData = () => {
+        console.log("getFiles start...");
         const token = localStorage.getItem("x-auth-token")
         fetch(`${API_URI}/getFiles/${this.state.keyWord}`, {
             headers: {
@@ -35,7 +36,8 @@ class Upload extends React.Component {
                 "x-auth-token": token,
             },
         }).then(response => response.json()).then(res => {
-            console.log(res);
+            console.log("getFiles end...");
+            // console.log(res);
             this.setState({ documents: res })
         })
 
@@ -131,16 +133,15 @@ class Upload extends React.Component {
 
                 </div>
                 <button onClick={this.onKeyWordHandler} name="all">All</button>
-                <button onClick={this.onKeyWordHandler} name="ttt">ttt</button>
-                <button onClick={this.onKeyWordHandler} name="rrr">rrr</button>
                 <button onClick={this.onKeyWordHandler} name="app">app</button>
+                <button onClick={this.onKeyWordHandler} name="express">express</button>
                 <button onClick={this.onKeyWordHandler} name="Payment">Payment</button>
                 <button onClick={this.onKeyWordHandler} name="receipt">receipt</button>
                 <button onClick={this.onKeyWordHandler} name="sales">sales</button>
                 <button onClick={this.onKeyWordHandler} name="invoice">invoice</button>
                 <button onClick={this.onKeyWordHandler} name="purchase">purchase</button>
                 <button onClick={this.onKeyWordHandler} name="invoice">invoice</button>
-                <div style={{ color: "red" }}>{this.state.keyWord}</div>
+                <h2 style={{ color: "red" }}>{this.state.keyWord}</h2>
                 <div>
                     {
                         this.state.documents && this.state.documents.map((item, index) => {
@@ -149,7 +150,7 @@ class Upload extends React.Component {
                                     <h4>{item.documentName.substr(0, 20)}</h4>
                                     {item.documentName.split('.')[1] === 'pdf' ? <PDF className='pdf-icon' /> : item.documentName.split('.')[1] === 'tif' ? <TIFF className='pdf-icon' /> : <img src={`${item.documentURL}`} alt="Document img" />}
                                     <div className="line">
-                                        <SEARCH className="icon" onClick={() => this.readFile(item.textId)} />
+                                        {/* <SEARCH className="icon" onClick={() => this.readFile(item.textId)} /> */}
                                         <a href={`${item.documentURL}`}>
                                             <DOWNLOAD className="icon" />
                                         </a>
