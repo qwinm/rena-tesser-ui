@@ -1,1 +1,1 @@
-export default "https://rena-tesser-server.herokuapp.com"
+export default "https://rena-backend.herokuapp.com"
