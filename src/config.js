@@ -1,1 +1,1 @@
-export default "http://localhost:8080"
+export default "https://rena-tesser-server.herokuapp.com"
