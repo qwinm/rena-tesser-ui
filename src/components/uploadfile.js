@@ -3,7 +3,7 @@ import axios from "axios"
 import API_URI from "../config"
 // import Modal from "./modal"
 import "./upload.css"
-import { ReactComponent as PDF } from '../images/pdf.svg'
+import { ReactComponent as FILE } from '../images/pdf.svg'
 import { ReactComponent as TIFF } from '../images/tiff.svg'
 import { ReactComponent as DELETE } from '../images/delete.svg'
 import { ReactComponent as DOWNLOAD } from '../images/download.svg'
@@ -105,7 +105,17 @@ class Upload extends React.Component {
                 // this.setState({ err: err.response.data })
             });
     }
-
+    downloadFile(documentId) {
+        const token = localStorage.getItem("x-auth-token")
+        axios.get(`${API_URI}/download/${documentId}`, {}, { headers: { 'x-auth-token': token } })
+            .then(response => {
+                // console.log(response.data);
+                const link = document.createElement('a');
+                link.href = response.data
+                document.body.appendChild(link);
+                link.click();
+            });
+    }
     searchInput = (e) => {
         // console.log(e.target.value);
         this.setState({ keyWord: e.target.value })
@@ -132,7 +142,7 @@ class Upload extends React.Component {
                 <br />
                 {this.state.selectedFile && <button onClick={this.onClickHandler} className="btn btn-success">Upload to the cloude</button>}
 
-                <h1>{this.state.message && this.state.message}</h1>
+                < h1 > {this.state.message && this.state.message}</h1 >
 
                 <br />
                 <div className="btn-group" role="group" aria-label="Basic example">
@@ -156,13 +166,10 @@ class Upload extends React.Component {
                             return (
                                 <div key={index} className="document-item">
                                     <h4>{item.documentName.substr(0, 15)}</h4>
-                                    {item.documentName.split('.')[1] === 'pdf' ? <PDF className='pdf-icon' /> : item.documentName.split('.')[1] === 'tif' ? <TIFF className='pdf-icon' /> : <img src={`${item.documentURL}`} alt="Document img" />}
+                                    <FILE className='pdf-icon' />
                                     <div className="line">
                                         <SEARCH className="icon" onClick={() => this.readFile(item.textId)} />
-                                        <a href={`${item.documentURL}`}>
-                                            <DOWNLOAD className="icon" />
-                                        </a>
-
+                                        <DOWNLOAD className="icon" onClick={() => this.downloadFile(item.documentId)} />
                                         <DELETE className="icon" onClick={() => this.delDocument(item.documentId, item.textId)} />
                                     </div>
                                 </div>
@@ -170,7 +177,7 @@ class Upload extends React.Component {
                         })
                     }
                 </div>
-            </div>
+            </div >
         )
     }
 }
