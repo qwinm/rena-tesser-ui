@@ -1,13 +1,14 @@
 import React from "react"
 import axios from "axios"
 import API_URI from "../config"
+// import Modal from "./modal"
 import "./upload.css"
 import { ReactComponent as PDF } from '../images/pdf.svg'
 import { ReactComponent as TIFF } from '../images/tiff.svg'
 import { ReactComponent as DELETE } from '../images/delete.svg'
 import { ReactComponent as DOWNLOAD } from '../images/download.svg'
 import { ReactComponent as SEARCH } from '../images/search.svg'
-
+import { Button, Modal } from 'react-bootstrap';
 
 
 class Upload extends React.Component {
@@ -15,10 +16,13 @@ class Upload extends React.Component {
         super(props)
         this.state = {
             images: [],
-            allOrders: [],
             selectedFile: null,
             documents: null,
-            keyWord: "all"
+            keyWord: "all",
+            filesLength: 0,
+            message: null,
+            text: null,
+            show: false
         }
 
 
@@ -28,7 +32,7 @@ class Upload extends React.Component {
     }
 
     getData = () => {
-        console.log("getFiles start...");
+        this.setState({ filesLength: "loading files....." })
         const token = localStorage.getItem("x-auth-token")
         fetch(`${API_URI}/getFiles/${this.state.keyWord}`, {
             headers: {
@@ -36,16 +40,26 @@ class Upload extends React.Component {
                 "x-auth-token": token,
             },
         }).then(response => response.json()).then(res => {
-            console.log("getFiles end...");
-            // console.log(res);
-            this.setState({ documents: res })
+            console.log(res);
+            this.setState({ documents: res, filesLength: `${res.length} files found ` })
+        })
+    }
+    readFile = (textId) => {
+        const token = localStorage.getItem("x-auth-token")
+        fetch(`${API_URI}/readDocument/${textId}`, {
+            headers: {
+                'Content-Type': 'application/json',
+                "x-auth-token": token,
+            },
+        }).then(response => response.json()).then(res => {
+            console.log(res.text);
+            this.setState({ text: res.text, show: true })
         })
 
-
     }
-
     delDocument = (name, txtname) => {
         const token = localStorage.getItem("x-auth-token")
+        this.setState({ text: "file is deleting...", show: true })
         fetch(`${API_URI}/remove/${name}/${txtname}`, {
             method: 'DELETE',
             headers: {
@@ -54,6 +68,7 @@ class Upload extends React.Component {
             },
         }).then(res => {
             this.getData()
+            this.setState({ show: false })
         })
 
     }
@@ -62,33 +77,27 @@ class Upload extends React.Component {
 
             this.getData()
         })
-
     }
     onChangeHandler = (event) => {
-
         var reader = new FileReader();
         this.setState({ images: event.target.files[0] }, () => {
-
             reader.onload = (e) => {
                 this.setState({ selectedFile: e.target.result })
             }
             reader.readAsDataURL(this.state.images)
         })
     }
+
     onClickHandler = () => {
-        const data = new FormData()
-
-        data.append("file", this.state.images)
-
+        this.setState({ message: "uploading please wait..." })
         const token = localStorage.getItem("x-auth-token")
-        /////////////////
-
+        const data = new FormData()
+        data.append("file", this.state.images)
+        this.setState({ selectedFile: null })
         axios.post(`${API_URI}/upload`, data, { headers: { 'x-auth-token': token } })
             .then(response => {
-                this.setState({ selectedFile: null })
-                //////////
+                this.setState({ message: null })
                 this.getData()
-                ////////
                 console.log(response.data);
                 // this.setState({ succ: response.data, err: null })
             }).catch((err) => {
@@ -97,60 +106,59 @@ class Upload extends React.Component {
             });
     }
 
+    searchInput = (e) => {
+        // console.log(e.target.value);
+        this.setState({ keyWord: e.target.value })
+    }
+    handleClose = () => { this.setState({ show: false }) }
 
     render() {
         return (
-            <div>
-
-                <div className="vvv ">
-                    <ul>
-                        <li>
-                            <div className="divType">load image</div>
-                            <div className="left">
-                                <img src={this.state.selectedFile}></img>
-                            </div>
-                            <div className="divTableStyle">
-                                <input
-                                    type="file"
-                                    className="form-control"
-                                    onChange={this.onChangeHandler}
-                                />
-
-                            </div>
-                        </li>
-                        <li>
-                            <div className="divType">Upload to cloude</div>
-                            <div className="divTableStyle">
-                                <input
-                                    type="button"
-                                    value="upload"
-                                    onClick={this.onClickHandler}
-                                    className="btn-success"
-                                />
-                            </div>
-                        </li>
-                    </ul>
-
+            <div >
+                <Modal show={this.state.show} onHide={this.handleClose}>
+                    <Modal.Header closeButton>
+                        <Modal.Title></Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>{this.state.text}</Modal.Body>
+                </Modal>
+                <div className="left">
+                    <img src={this.state.selectedFile}></img>
                 </div>
-                <button onClick={this.onKeyWordHandler} name="all">All</button>
-                <button onClick={this.onKeyWordHandler} name="app">app</button>
-                <button onClick={this.onKeyWordHandler} name="express">express</button>
-                <button onClick={this.onKeyWordHandler} name="Payment">Payment</button>
-                <button onClick={this.onKeyWordHandler} name="receipt">receipt</button>
-                <button onClick={this.onKeyWordHandler} name="sales">sales</button>
-                <button onClick={this.onKeyWordHandler} name="invoice">invoice</button>
-                <button onClick={this.onKeyWordHandler} name="purchase">purchase</button>
-                <button onClick={this.onKeyWordHandler} name="invoice">invoice</button>
+                <input
+                    type="file"
+                    className="form-control"
+                    onChange={this.onChangeHandler}
+                />
+                <br />
+                {this.state.selectedFile && <button onClick={this.onClickHandler} className="btn btn-success">Upload to the cloude</button>}
+
+                <h1>{this.state.message && this.state.message}</h1>
+
+                <br />
+                <div className="btn-group" role="group" aria-label="Basic example">
+                    <button onClick={this.onKeyWordHandler} name="all" className="btn btn-warning">All</button>
+                    <button onClick={this.onKeyWordHandler} name="app" className="btn btn-secondary">app</button>
+                    <button onClick={this.onKeyWordHandler} name="Payment" className="btn btn-secondary">Payment</button>
+                    <button onClick={this.onKeyWordHandler} name="receipt" className="btn btn-secondary">receipt</button>
+                    <button onClick={this.onKeyWordHandler} name="sales" className="btn btn-secondary">sales</button>
+                    <button onClick={this.onKeyWordHandler} name="invoice" className="btn btn-secondary">invoice</button>
+                    <button onClick={this.onKeyWordHandler} name="purchase" className="btn btn-secondary">purchase</button>
+                </div>
+
+                <input style={{ width: "300px" }} type='text' placeholder="type keyword..." className="form-control" onChange={this.searchInput} />
+                <button onClick={this.getData} className="btn btn-success">Search</button>
                 <h2 style={{ color: "red" }}>{this.state.keyWord}</h2>
+
+                <h2 className="text-info">{this.state.filesLength}</h2>
                 <div>
                     {
                         this.state.documents && this.state.documents.map((item, index) => {
                             return (
                                 <div key={index} className="document-item">
-                                    <h4>{item.documentName.substr(0, 20)}</h4>
+                                    <h4>{item.documentName.substr(0, 15)}</h4>
                                     {item.documentName.split('.')[1] === 'pdf' ? <PDF className='pdf-icon' /> : item.documentName.split('.')[1] === 'tif' ? <TIFF className='pdf-icon' /> : <img src={`${item.documentURL}`} alt="Document img" />}
                                     <div className="line">
-                                        {/* <SEARCH className="icon" onClick={() => this.readFile(item.textId)} /> */}
+                                        <SEARCH className="icon" onClick={() => this.readFile(item.textId)} />
                                         <a href={`${item.documentURL}`}>
                                             <DOWNLOAD className="icon" />
                                         </a>
