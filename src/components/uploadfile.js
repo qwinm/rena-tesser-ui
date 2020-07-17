@@ -4,7 +4,7 @@ import API_URI from "../config"
 // import Modal from "./modal"
 import "./upload.css"
 import { ReactComponent as FILE } from '../images/pdf.svg'
-import { ReactComponent as TIFF } from '../images/tiff.svg'
+// import { ReactComponent as TIFF } from '../images/tiff.svg'
 import { ReactComponent as DELETE } from '../images/delete.svg'
 import { ReactComponent as DOWNLOAD } from '../images/download.svg'
 import { ReactComponent as SEARCH } from '../images/search.svg'
@@ -18,7 +18,7 @@ class Upload extends React.Component {
             images: [],
             selectedFile: null,
             documents: null,
-            keyWord: "all",
+            keyWord: "|all|",
             filesLength: 0,
             message: null,
             text: null,
@@ -32,19 +32,23 @@ class Upload extends React.Component {
     }
 
     getData = () => {
-        this.setState({ filesLength: "loading files....." })
-        const token = localStorage.getItem("x-auth-token")
-        fetch(`${API_URI}/getFiles/${this.state.keyWord}`, {
-            headers: {
-                'Content-Type': 'application/json',
-                "x-auth-token": token,
-            },
-        }).then(response => response.json()).then(res => {
-            console.log(res);
-            this.setState({ documents: res, filesLength: `${res.length} files found ` })
-        })
+        const { keyWord } = this.state
+        if (keyWord != "") {
+            this.setState({ filesLength: "loading files....." })
+            const token = localStorage.getItem("x-auth-token")
+            fetch(`${API_URI}/getFiles/${keyWord.toLocaleLowerCase()}`, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    "x-auth-token": token,
+                },
+            }).then(response => response.json()).then(res => {
+                console.log(res);
+                this.setState({ documents: res, filesLength: `${res.length} files found ` })
+            })
+        }
     }
     readFile = (textId) => {
+        const { keyWord } = this.state
         const token = localStorage.getItem("x-auth-token")
         fetch(`${API_URI}/readDocument/${textId}`, {
             headers: {
@@ -52,8 +56,19 @@ class Upload extends React.Component {
                 "x-auth-token": token,
             },
         }).then(response => response.json()).then(res => {
-            console.log(res.text);
-            this.setState({ text: res.text, show: true })
+            // console.log(res.text);
+
+            let text = res.text
+            const parts = text.split(new RegExp(`(${keyWord})`, 'gi'));
+            const higText = <span> {parts.map((part, i) =>
+                <span key={i} style={part.toLowerCase() === keyWord.toLowerCase() ? { backgroundColor: "yellow" } : {}}>
+                    {part}
+                </span>)
+            } </span>;
+
+
+
+            this.setState({ text: higText, show: true })
         })
 
     }
@@ -107,7 +122,7 @@ class Upload extends React.Component {
     }
     downloadFile(documentId) {
         const token = localStorage.getItem("x-auth-token")
-        axios.get(`${API_URI}/download/${documentId}`, {}, { headers: { 'x-auth-token': token } })
+        axios.get(`${API_URI}/download/${documentId}`, { headers: { 'x-auth-token': token } })
             .then(response => {
                 // console.log(response.data);
                 const link = document.createElement('a');
@@ -123,32 +138,34 @@ class Upload extends React.Component {
     handleClose = () => { this.setState({ show: false }) }
 
     render() {
+        const { show, text, selectedFile, message, filesLength, keyWord, documents } = this.state
         return (
             <div >
-                <Modal show={this.state.show} onHide={this.handleClose}>
+                <Modal show={show} onHide={this.handleClose}>
                     <Modal.Header closeButton>
                         <Modal.Title></Modal.Title>
                     </Modal.Header>
-                    <Modal.Body>{this.state.text}</Modal.Body>
+                    <Modal.Body>{text}</Modal.Body>
                 </Modal>
-                <div className="left">
-                    <img src={this.state.selectedFile}></img>
+                <div className="image" >
+                    <img src={selectedFile}></img>
                 </div>
                 <input
                     type="file"
                     className="form-control"
+                    accept="image/*"
+                    capture="camera"
                     onChange={this.onChangeHandler}
                 />
                 <br />
-                {this.state.selectedFile && <button onClick={this.onClickHandler} className="btn btn-success">Upload to the cloude</button>}
+                {selectedFile && <button onClick={this.onClickHandler} className="btn btn-success">Upload to the cloude</button>}
 
-                < h1 > {this.state.message && this.state.message}</h1 >
+                < h1 style={{ color: "red" }}> {message && message}</h1 >
 
                 <br />
                 <div className="btn-group" role="group" aria-label="Basic example">
-                    <button onClick={this.onKeyWordHandler} name="all" className="btn btn-warning">All</button>
-                    <button onClick={this.onKeyWordHandler} name="app" className="btn btn-secondary">app</button>
-                    <button onClick={this.onKeyWordHandler} name="Payment" className="btn btn-secondary">Payment</button>
+                    <button onClick={this.onKeyWordHandler} name="|all|" className="btn btn-warning">All</button>
+                    <button onClick={this.onKeyWordHandler} name="payment" className="btn btn-secondary">payment</button>
                     <button onClick={this.onKeyWordHandler} name="receipt" className="btn btn-secondary">receipt</button>
                     <button onClick={this.onKeyWordHandler} name="sales" className="btn btn-secondary">sales</button>
                     <button onClick={this.onKeyWordHandler} name="invoice" className="btn btn-secondary">invoice</button>
@@ -157,16 +174,17 @@ class Upload extends React.Component {
 
                 <input style={{ width: "300px" }} type='text' placeholder="type keyword..." className="form-control" onChange={this.searchInput} />
                 <button onClick={this.getData} className="btn btn-success">Search</button>
-                <h2 style={{ color: "red" }}>{this.state.keyWord}</h2>
+                <br />
+                {keyWord !== "|all|" && <span style={{ backgroundColor: "yellow", fontSize: "24px" }}>{keyWord}</span>}
 
-                <h2 className="text-info">{this.state.filesLength}</h2>
+                <h2 className="text-info">{filesLength}</h2>
                 <div>
                     {
-                        this.state.documents && this.state.documents.map((item, index) => {
+                        documents && documents.map((item, index) => {
                             return (
                                 <div key={index} className="document-item">
-                                    <h4>{item.documentName.substr(0, 15)}</h4>
-                                    <FILE className='pdf-icon' />
+                                    <h4>{item.documentName}</h4>
+                                    <FILE />
                                     <div className="line">
                                         <SEARCH className="icon" onClick={() => this.readFile(item.textId)} />
                                         <DOWNLOAD className="icon" onClick={() => this.downloadFile(item.documentId)} />
