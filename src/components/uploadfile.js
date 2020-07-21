@@ -111,13 +111,13 @@ class Upload extends React.Component {
         this.setState({ selectedFile: null })
         axios.post(`${API_URI}/upload`, data, { headers: { 'x-auth-token': token } })
             .then(response => {
+                console.log(response.data);
                 this.setState({ message: null })
                 this.getData()
-                console.log(response.data);
                 // this.setState({ succ: response.data, err: null })
             }).catch((err) => {
-                // console.log(err.response.data);
-                // this.setState({ err: err.response.data })
+                // this.setState({ message: err })
+                err.response.data && this.setState({ message: err.response.data })
             });
     }
     downloadFile(documentId) {
