@@ -9,6 +9,7 @@ import { ReactComponent as DELETE } from '../images/delete.svg'
 import { ReactComponent as DOWNLOAD } from '../images/download.svg'
 import { ReactComponent as SEARCH } from '../images/search.svg'
 import { Button, Modal } from 'react-bootstrap';
+const { createWorker } = require('tesseract.js');
 
 
 class Upload extends React.Component {
@@ -94,6 +95,7 @@ class Upload extends React.Component {
         })
     }
     onChangeHandler = (event) => {
+        // console.log(event.target.files[0]);
         var reader = new FileReader();
         this.setState({ images: event.target.files[0] }, () => {
             reader.onload = (e) => {
@@ -103,22 +105,45 @@ class Upload extends React.Component {
         })
     }
 
-    onClickHandler = () => {
-        this.setState({ message: "uploading please wait..." })
-        const token = localStorage.getItem("x-auth-token")
-        const data = new FormData()
-        data.append("file", this.state.images)
-        this.setState({ selectedFile: null })
-        axios.post(`${API_URI}/upload`, data, { headers: { 'x-auth-token': token } })
-            .then(response => {
-                console.log(response.data);
-                this.setState({ message: null })
-                this.getData()
-                // this.setState({ succ: response.data, err: null })
-            }).catch((err) => {
-                // this.setState({ message: err })
-                err.response.data && this.setState({ message: err.response.data })
+    onClickHandler = async () => {
+        // console.log(this.state.selectedFile);
+        try {
+            const worker = createWorker({
+                logger: m => {
+                    // console.log(m.status);
+                    this.setState({ message: "uploading to ORC..." })
+                    if (m.status == "recognizing text") {
+                        const prog = m.progress * 100 + ""
+                        this.setState({ message: `file is scanning... ${prog.substring(0, 4)}%` })
+                    }
+                }
             });
+            await worker.load();
+            await worker.loadLanguage('eng');
+            await worker.initialize('eng');
+            const { data: { text } } = await worker.recognize(this.state.selectedFile);
+
+            // console.log(text);
+
+            this.setState({ selectedFile: null })
+            this.setState({ message: "uploading to the cloude storage please wait..." })
+            const token = localStorage.getItem("x-auth-token")
+            const data = new FormData()
+            data.append("file", this.state.images)
+
+            axios.post(`${API_URI}/upload?textData=${text}`, data, { headers: { 'x-auth-token': token } })
+                .then(response => {
+                    // console.log(response.data);
+                    this.setState({ message: null })
+                    this.getData()
+                    // this.setState({ succ: response.data, err: null })
+                }).catch((err) => {
+                    // this.setState({ message: err })
+                    this.setState({ message: "uploading failed..." })
+                });
+        } catch (ex) {
+            this.setState({ message: "scanning failed..." })
+        }
     }
     downloadFile(documentId) {
         const token = localStorage.getItem("x-auth-token")
